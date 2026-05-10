@@ -1,0 +1,75 @@
+name: branch macOS Arm64 package
+
+on:
+  push:
+    branches:
+      - "codex/**"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-arm64:
+    name: build macOS arm64
+    runs-on: macos-latest
+    env:
+      Output: "${{ github.workspace }}/arm64"
+      RID: osx-arm64
+      Project: "./v2rayN.Desktop/v2rayN.Desktop.csproj"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+        with:
+          submodules: "recursive"
+          fetch-depth: "0"
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v5.2.0
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Build v2rayN
+        working-directory: ./v2rayN
+        run: dotnet publish $Project -c Release -r $RID -p:SelfContained=true -o $Output
+
+      - name: Build AmazTool
+        working-directory: ./v2rayN
+        run: dotnet publish ./AmazTool/AmazTool.csproj -c Release -r $RID -p:SelfContained=true -p:PublishTrimmed=true -o $Output
+
+      - name: Upload arm64 publish output
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: arm64
+          path: arm64
+
+  package-dmg:
+    name: package macOS arm64 dmg
+    needs: build-arm64
+    runs-on: macos-latest
+    env:
+      PACKAGE_VERSION: "7.20.4"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6.0.2
+
+      - name: Restore arm64 publish output
+        uses: actions/download-artifact@v8
+        with:
+          name: arm64
+          path: v2rayN-macos-arm64
+
+      - name: Setup create-dmg
+        run: brew install create-dmg
+
+      - name: Ensure script permissions
+        run: chmod 755 package-osx.sh
+
+      - name: Package dmg
+        run: ./package-osx.sh macos-arm64 v2rayN-macos-arm64 "$PACKAGE_VERSION"
+
+      - name: Upload dmg artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: v2rayN-macos-arm64-dmg
+          path: v2rayN-macos-arm64.dmg
