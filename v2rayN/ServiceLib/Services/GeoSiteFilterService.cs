@@ -20,7 +20,8 @@ public static class GeoSiteFilterService
     {
         if (!IsGeoSiteFilter(filter))
         {
-            return Regex.IsMatch(msg, filter);
+            return msg.Contains(filter, StringComparison.OrdinalIgnoreCase)
+                || Regex.IsMatch(msg, filter, RegexOptions.IgnoreCase);
         }
 
         var tags = ParseGeoSiteTags(filter);

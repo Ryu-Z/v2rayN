@@ -303,7 +303,7 @@ public class MsgViewModel : MyReactiveObject
             return GeoSiteFilterService.BuildGeoSiteFilter(GetSelectedGeoSiteTags());
         }
 
-        return RegularMsgFilter;
+        return RegularMsgFilter ?? string.Empty;
     }
 
     private void PersistFilter()

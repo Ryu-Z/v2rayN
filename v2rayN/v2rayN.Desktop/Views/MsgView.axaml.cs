@@ -11,6 +11,13 @@ public partial class MsgView : ReactiveUserControl<MsgViewModel>
         InitializeComponent();
         txtMsg.TextArea.TextView.Options.EnableHyperlinks = false;
         ViewModel = new MsgViewModel(UpdateViewHandler);
+        txtRegularMsgFilter.TextChanged += (_, _) =>
+        {
+            if (ViewModel is not null && ViewModel.RegularMsgFilter != txtRegularMsgFilter.Text)
+            {
+                ViewModel.RegularMsgFilter = txtRegularMsgFilter.Text ?? string.Empty;
+            }
+        };
 
         this.WhenActivated(disposables =>
         {
