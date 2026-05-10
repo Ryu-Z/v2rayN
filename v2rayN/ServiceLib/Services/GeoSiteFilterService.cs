@@ -2,6 +2,7 @@ namespace ServiceLib.Services;
 
 public static class GeoSiteFilterService
 {
+    private const string GeoSitePrefix = "geosite:";
     private static readonly ConcurrentDictionary<string, Lazy<GeoSiteEntry>> GeoSiteCache = new(StringComparer.OrdinalIgnoreCase);
 
     private static readonly Regex SchemeHostRegex = new(
@@ -45,14 +46,14 @@ public static class GeoSiteFilterService
 
     private static bool IsGeoSiteFilter(string filter)
     {
-        return filter.Trim().StartsWith(Global.GeoSitePrefix, StringComparison.OrdinalIgnoreCase);
+        return filter.Trim().StartsWith(GeoSitePrefix, StringComparison.OrdinalIgnoreCase);
     }
 
     private static List<string> ParseGeoSiteTags(string filter)
     {
         return filter
             .Split([',', ';', ' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-            .Select(t => t.StartsWith(Global.GeoSitePrefix, StringComparison.OrdinalIgnoreCase) ? t[Global.GeoSitePrefix.Length..] : t)
+            .Select(t => t.StartsWith(GeoSitePrefix, StringComparison.OrdinalIgnoreCase) ? t[GeoSitePrefix.Length..] : t)
             .Select(t => t.Split('@', StringSplitOptions.TrimEntries).FirstOrDefault() ?? string.Empty)
             .Where(t => t.IsNotEmpty())
             .Distinct(StringComparer.OrdinalIgnoreCase)
