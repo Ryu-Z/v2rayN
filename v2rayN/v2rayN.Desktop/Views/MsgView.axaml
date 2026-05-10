@@ -21,7 +21,10 @@
                 x:Name="cmbMsgFilterType"
                 Width="116"
                 Margin="{StaticResource MarginLr8}"
-                VerticalContentAlignment="Center" />
+                VerticalContentAlignment="Center">
+                <ComboBoxItem Content="geosite" />
+                <ComboBoxItem Content="常规筛选" />
+            </ComboBox>
 
             <TextBox
                 x:Name="txtRegularMsgFilter"

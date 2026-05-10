@@ -29,11 +29,13 @@ public class MsgViewModel : MyReactiveObject
     private int _showLock = 0; // 0 = unlocked, 1 = locked
     public int NumMaxMsg { get; } = 500;
 
-    public IObservableCollection<string> FilterTypes { get; } = new ObservableCollectionExtended<string>();
     public IObservableCollection<GeoSiteFilterItem> FilteredGeoSiteItems { get; } = new ObservableCollectionExtended<GeoSiteFilterItem>();
 
     [Reactive]
     public string SelectedMsgFilterType { get; set; }
+
+    [Reactive]
+    public int SelectedMsgFilterIndex { get; set; }
 
     [Reactive]
     public string RegularMsgFilter { get; set; }
@@ -62,8 +64,6 @@ public class MsgViewModel : MyReactiveObject
         _updateView = updateView;
         _isInitializing = true;
 
-        FilterTypes.AddRange([FilterTypeGeoSite, FilterTypeRegular]);
-
         var savedFilter = _config.MsgUIItem.MainMsgFilter ?? string.Empty;
         var savedGeoSiteTags = _config.MsgUIItem.MainMsgFilterGeoSites?.ToList() ?? GeoSiteFilterService.ParseGeoSiteTags(savedFilter);
         var savedFilterType = _config.MsgUIItem.MainMsgFilterType;
@@ -76,6 +76,7 @@ public class MsgViewModel : MyReactiveObject
         GeoSiteSelectionCountText = string.Empty;
         LoadGeoSiteItems(savedGeoSiteTags);
         SelectedMsgFilterType = useGeoSiteMode ? FilterTypeGeoSite : FilterTypeRegular;
+        SelectedMsgFilterIndex = useGeoSiteMode ? 0 : 1;
         ApplyFilterMode();
 
         AutoRefresh = _config.MsgUIItem.AutoRefresh ?? true;
@@ -83,7 +84,7 @@ public class MsgViewModel : MyReactiveObject
         PersistFilter();
 
         this.WhenAnyValue(
-           x => x.SelectedMsgFilterType)
+           x => x.SelectedMsgFilterIndex)
                .Subscribe(c => ApplyFilterMode());
 
         this.WhenAnyValue(
@@ -234,6 +235,7 @@ public class MsgViewModel : MyReactiveObject
 
     private void ApplyFilterMode()
     {
+        SelectedMsgFilterType = SelectedMsgFilterIndex == 0 ? FilterTypeGeoSite : FilterTypeRegular;
         IsGeoSiteMode = SelectedMsgFilterType == FilterTypeGeoSite;
         IsRegularFilterMode = !IsGeoSiteMode;
         PersistFilter();

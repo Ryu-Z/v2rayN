@@ -14,8 +14,7 @@ public partial class MsgView : ReactiveUserControl<MsgViewModel>
 
         this.WhenActivated(disposables =>
         {
-            this.OneWayBind(ViewModel, vm => vm.FilterTypes, v => v.cmbMsgFilterType.ItemsSource).DisposeWith(disposables);
-            this.Bind(ViewModel, vm => vm.SelectedMsgFilterType, v => v.cmbMsgFilterType.SelectedItem).DisposeWith(disposables);
+            this.Bind(ViewModel, vm => vm.SelectedMsgFilterIndex, v => v.cmbMsgFilterType.SelectedIndex).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.RegularMsgFilter, v => v.txtRegularMsgFilter.Text).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.GeoSiteSearchText, v => v.txtGeoSiteSearch.Text).DisposeWith(disposables);
             this.OneWayBind(ViewModel, vm => vm.IsRegularFilterMode, v => v.txtRegularMsgFilter.IsVisible).DisposeWith(disposables);
