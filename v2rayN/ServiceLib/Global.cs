@@ -550,6 +550,7 @@ public class Global
         "proxy",
         "direct",
         "block",
+        "geosite:github",
         ""
     ];
 

@@ -79,7 +79,7 @@ public class MsgViewModel : MyReactiveObject
         {
             try
             {
-                if (!Regex.IsMatch(msg, MsgFilter))
+                if (!GeoSiteFilterService.IsMatch(msg, MsgFilter))
                 {
                     return;
                 }
