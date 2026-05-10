@@ -6,6 +6,7 @@
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:resx="clr-namespace:ServiceLib.Resx;assembly=ServiceLib"
+    xmlns:vms="clr-namespace:ServiceLib.ViewModels;assembly=ServiceLib"
     d:DesignHeight="450"
     d:DesignWidth="800"
     mc:Ignorable="d">
@@ -16,12 +17,75 @@
             DockPanel.Dock="Top"
             Orientation="Horizontal">
 
+            <ComboBox
+                x:Name="cmbMsgFilterType"
+                Width="116"
+                Margin="{StaticResource MarginLr8}"
+                VerticalContentAlignment="Center" />
+
             <TextBox
-                x:Name="cmbMsgFilter"
-                Width="200"
+                x:Name="txtRegularMsgFilter"
+                Width="270"
                 Margin="{StaticResource MarginLr8}"
                 VerticalContentAlignment="Center"
-                Watermark="{x:Static resx:ResUI.MsgFilterTitle}" />
+                Watermark="输入关键词或规则（支持正则）" />
+
+            <Button
+                x:Name="btnGeoSiteSelector"
+                Width="300"
+                Margin="{StaticResource MarginLr8}"
+                HorizontalContentAlignment="Left"
+                Click="btnGeoSiteSelector_Click">
+                <Button.Flyout>
+                    <Flyout>
+                        <Border
+                            Width="320"
+                            MaxHeight="400"
+                            Padding="{StaticResource Margin8}">
+                            <DockPanel>
+                                <StackPanel DockPanel.Dock="Bottom">
+                                    <Border
+                                        Height="1"
+                                        Margin="0,8,0,0"
+                                        Background="Gray" />
+                                    <Grid Margin="0,8,0,0" ColumnDefinitions="*,Auto">
+                                        <TextBlock
+                                            x:Name="txtGeoSiteCount"
+                                            Grid.Column="0"
+                                            VerticalAlignment="Center" />
+                                        <Button
+                                            x:Name="btnClearGeoSite"
+                                            Grid.Column="1"
+                                            Classes="Success"
+                                            Click="btnClearGeoSite_Click"
+                                            Content="清空" />
+                                    </Grid>
+                                </StackPanel>
+
+                                <TextBox
+                                    x:Name="txtGeoSiteSearch"
+                                    Margin="0,0,0,8"
+                                    DockPanel.Dock="Top"
+                                    VerticalContentAlignment="Center"
+                                    Watermark="搜索 geosite..." />
+
+                                <ListBox
+                                    x:Name="lstGeoSiteItems"
+                                    Height="280">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="vms:GeoSiteFilterItem">
+                                            <CheckBox
+                                                HorizontalAlignment="Stretch"
+                                                Content="{Binding DisplayName}"
+                                                IsChecked="{Binding IsSelected}" />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </DockPanel>
+                        </Border>
+                    </Flyout>
+                </Button.Flyout>
+            </Button>
 
             <Button
                 x:Name="btnCopy"

@@ -82,6 +82,8 @@ public class GUIItem
 public class MsgUIItem
 {
     public string? MainMsgFilter { get; set; }
+    public string? MainMsgFilterType { get; set; }
+    public List<string>? MainMsgFilterGeoSites { get; set; }
     public bool? AutoRefresh { get; set; }
 }
 

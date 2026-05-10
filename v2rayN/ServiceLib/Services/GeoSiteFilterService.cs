@@ -4,6 +4,9 @@ public static class GeoSiteFilterService
 {
     private const string GeoSitePrefix = "geosite:";
     private static readonly ConcurrentDictionary<string, Lazy<GeoSiteEntry>> GeoSiteCache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly object GeoSiteListLock = new();
+    private static string? GeoSiteFileCacheKey;
+    private static IReadOnlyList<string> GeoSiteCodesCache = [];
 
     private static readonly Regex SchemeHostRegex = new(
         @"(?i)\b(?:tcp|udp|http|https|tls|quic|grpc|ws|wss):(?://)?(?<host>(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z0-9-]{2,63})(?::\d{1,5})?",
@@ -44,20 +47,60 @@ public static class GeoSiteFilterService
         return false;
     }
 
-    private static bool IsGeoSiteFilter(string filter)
+    public static bool IsGeoSiteFilter(string? filter)
     {
-        return filter.Trim().StartsWith(GeoSitePrefix, StringComparison.OrdinalIgnoreCase);
+        return filter?.Trim().StartsWith(GeoSitePrefix, StringComparison.OrdinalIgnoreCase) == true;
     }
 
-    private static List<string> ParseGeoSiteTags(string filter)
+    public static List<string> ParseGeoSiteTags(string? filter)
     {
-        return filter
+        if (filter.IsNullOrEmpty())
+        {
+            return [];
+        }
+
+        return filter!
             .Split([',', ';', ' ', '\t', '\r', '\n'], StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
             .Select(t => t.StartsWith(GeoSitePrefix, StringComparison.OrdinalIgnoreCase) ? t[GeoSitePrefix.Length..] : t)
             .Select(t => t.Split('@', StringSplitOptions.TrimEntries).FirstOrDefault() ?? string.Empty)
             .Where(t => t.IsNotEmpty())
             .Distinct(StringComparer.OrdinalIgnoreCase)
             .ToList();
+    }
+
+    public static string BuildGeoSiteFilter(IEnumerable<string> tags)
+    {
+        return string.Join(" ", tags
+            .Where(t => t.IsNotEmpty())
+            .Select(t => t.StartsWith(GeoSitePrefix, StringComparison.OrdinalIgnoreCase) ? t[GeoSitePrefix.Length..] : t)
+            .Select(t => t.Trim())
+            .Where(t => t.IsNotEmpty())
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Select(t => $"{GeoSitePrefix}{t.ToLowerInvariant()}"));
+    }
+
+    public static IReadOnlyList<string> GetGeoSiteCodes()
+    {
+        var fileInfo = new FileInfo(FindGeoSiteFile());
+        var cacheKey = BuildFileCacheKey(fileInfo);
+
+        lock (GeoSiteListLock)
+        {
+            if (GeoSiteFileCacheKey == cacheKey && GeoSiteCodesCache.Count > 0)
+            {
+                return GeoSiteCodesCache;
+            }
+
+            GeoSiteCodesCache = LoadGeoSiteCodes(fileInfo.FullName)
+                .Select(t => t.ToLowerInvariant())
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(t => t, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            GeoSiteFileCacheKey = cacheKey;
+            GeoSiteCache.Clear();
+
+            return GeoSiteCodesCache;
+        }
     }
 
     private static List<string> ExtractHosts(string msg)
@@ -85,8 +128,31 @@ public static class GeoSiteFilterService
     {
         var fileName = FindGeoSiteFile();
         var fileInfo = new FileInfo(fileName);
-        var cacheKey = $"{fileInfo.FullName}|{fileInfo.LastWriteTimeUtc.Ticks}|{tag}";
+        var fileCacheKey = BuildFileCacheKey(fileInfo);
+        ResetEntryCacheIfGeoSiteFileChanged(fileCacheKey);
+
+        var cacheKey = $"{fileCacheKey}|{tag}";
         return GeoSiteCache.GetOrAdd(cacheKey, _ => new Lazy<GeoSiteEntry>(() => LoadGeoSiteEntry(fileInfo.FullName, tag))).Value;
+    }
+
+    private static string BuildFileCacheKey(FileInfo fileInfo)
+    {
+        return $"{fileInfo.FullName}|{fileInfo.Length}|{fileInfo.LastWriteTimeUtc.Ticks}";
+    }
+
+    private static void ResetEntryCacheIfGeoSiteFileChanged(string fileCacheKey)
+    {
+        lock (GeoSiteListLock)
+        {
+            if (GeoSiteFileCacheKey == fileCacheKey)
+            {
+                return;
+            }
+
+            GeoSiteFileCacheKey = fileCacheKey;
+            GeoSiteCodesCache = [];
+            GeoSiteCache.Clear();
+        }
     }
 
     private static string FindGeoSiteFile()
@@ -132,6 +198,50 @@ public static class GeoSiteFilterService
         }
 
         throw new KeyNotFoundException($"geosite:{tag} not found in {fileName}");
+    }
+
+    private static List<string> LoadGeoSiteCodes(string fileName)
+    {
+        var data = File.ReadAllBytes(fileName);
+        var reader = new ProtoReader(data);
+        var codes = new List<string>();
+
+        while (!reader.EndOfBuffer)
+        {
+            var field = reader.ReadFieldHeader(out var wireType);
+            if (field == 1 && wireType == ProtoWireType.LengthDelimited)
+            {
+                var code = ParseGeoSiteCode(reader.ReadLengthDelimited());
+                if (code.IsNotEmpty())
+                {
+                    codes.Add(code);
+                }
+            }
+            else
+            {
+                reader.Skip(wireType);
+            }
+        }
+
+        return codes;
+    }
+
+    private static string ParseGeoSiteCode(byte[] data)
+    {
+        var reader = new ProtoReader(data);
+
+        while (!reader.EndOfBuffer)
+        {
+            var field = reader.ReadFieldHeader(out var wireType);
+            if (field == 1 && wireType == ProtoWireType.LengthDelimited)
+            {
+                return reader.ReadString();
+            }
+
+            reader.Skip(wireType);
+        }
+
+        return string.Empty;
     }
 
     private static GeoSiteEntry ParseGeoSite(byte[] data)

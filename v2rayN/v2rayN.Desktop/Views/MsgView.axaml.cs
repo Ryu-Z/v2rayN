@@ -14,7 +14,15 @@ public partial class MsgView : ReactiveUserControl<MsgViewModel>
 
         this.WhenActivated(disposables =>
         {
-            this.Bind(ViewModel, vm => vm.MsgFilter, v => v.cmbMsgFilter.Text).DisposeWith(disposables);
+            this.OneWayBind(ViewModel, vm => vm.FilterTypes, v => v.cmbMsgFilterType.ItemsSource).DisposeWith(disposables);
+            this.Bind(ViewModel, vm => vm.SelectedMsgFilterType, v => v.cmbMsgFilterType.SelectedItem).DisposeWith(disposables);
+            this.Bind(ViewModel, vm => vm.RegularMsgFilter, v => v.txtRegularMsgFilter.Text).DisposeWith(disposables);
+            this.Bind(ViewModel, vm => vm.GeoSiteSearchText, v => v.txtGeoSiteSearch.Text).DisposeWith(disposables);
+            this.OneWayBind(ViewModel, vm => vm.IsRegularFilterMode, v => v.txtRegularMsgFilter.IsVisible).DisposeWith(disposables);
+            this.OneWayBind(ViewModel, vm => vm.IsGeoSiteMode, v => v.btnGeoSiteSelector.IsVisible).DisposeWith(disposables);
+            this.OneWayBind(ViewModel, vm => vm.FilteredGeoSiteItems, v => v.lstGeoSiteItems.ItemsSource).DisposeWith(disposables);
+            this.OneWayBind(ViewModel, vm => vm.GeoSiteSelectionSummary, v => v.btnGeoSiteSelector.Content).DisposeWith(disposables);
+            this.OneWayBind(ViewModel, vm => vm.GeoSiteSelectionCountText, v => v.txtGeoSiteCount.Text).DisposeWith(disposables);
             this.Bind(ViewModel, vm => vm.AutoRefresh, v => v.togAutoRefresh.IsChecked).DisposeWith(disposables);
         });
 
@@ -91,5 +99,15 @@ public partial class MsgView : ReactiveUserControl<MsgViewModel>
     private void menuMsgViewClear_Click(object? sender, RoutedEventArgs e)
     {
         ClearMsg();
+    }
+
+    private void btnGeoSiteSelector_Click(object? sender, RoutedEventArgs e)
+    {
+        ViewModel?.RefreshGeoSiteItems();
+    }
+
+    private void btnClearGeoSite_Click(object? sender, RoutedEventArgs e)
+    {
+        ViewModel?.ClearGeoSiteSelection();
     }
 }
